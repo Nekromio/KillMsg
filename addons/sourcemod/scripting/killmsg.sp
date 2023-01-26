@@ -29,7 +29,7 @@ public Plugin myinfo =
 	name = "Kill Message Overlays",
 	author = "Nek.a 2x2",
 	description = "Kill Message Overlays",
-	version = "1.0",
+	version = "1.0.1",
 	url = "https://ggwp.site/"
 }
 
@@ -108,7 +108,13 @@ public void OnMapStart()
 	}
 }
 
-public Action OverlayEndTimer(Handle timer, any UserID)
+public void OnClientConnected(int client)
+{
+	if(hTimerOverlay[client])
+		delete hTimerOverlay[client];
+}
+
+Action OverlayEndTimer(Handle timer, any UserID)
 {
 	int client = GetClientOfUserId(UserID);
 	
@@ -163,13 +169,10 @@ Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	return Plugin_Continue;
 }
 
-Action Event_RoundReset(Event event, const char[] name, bool dontBroadcast)
+void Event_RoundReset(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	
-	iCountKill[client] = 0;
-	
-	return Plugin_Continue;
+	for(int i = 1; i <= MaxClients; i++) if(IsClientInGame(i) && !IsFakeClient(i))
+		iCountKill[i] = 0;
 }
 
 void OnOverlay(int client, char[] sOverlay)

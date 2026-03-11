@@ -29,7 +29,7 @@ public Plugin myinfo =
 	name = "Kill Message Overlays",
 	author = "Nek.a 2x2",
 	description = "Kill Message Overlays",
-	version = "1.0.1",
+	version = "1.0.7",
 	url = "https://ggwp.site/"
 }
 
@@ -108,36 +108,32 @@ public void OnMapStart()
 	}
 }
 
-public void OnClientConnected(int client)
+public void OnClientDisconnect(int client)
 {
 	if(hTimerOverlay[client])
 		delete hTimerOverlay[client];
 }
 
-Action OverlayEndTimer(Handle timer, any UserID)
+public Action Timer_OverlayEndTimer(Handle timer, any UserID)
 {
 	int client = GetClientOfUserId(UserID);
 	
 	if(!IsValidClient(client))
 		return Plugin_Continue;
-		
-	OverlayEnd(client);
 	hTimerOverlay[client] = null;
+
+	ClientCommand(client, "r_screenoverlay \"\"");
+
 	return Plugin_Continue;
 }
 
-void OverlayEnd(int client)
-{
-	ClientCommand(client, "r_screenoverlay \"\"");
-}
-
-Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 	
-	if(!(IsValidClient(client) || IsValidClient(attacker)))
-		return Plugin_Continue;
+	if(!client || !attacker || IsFakeClient(attacker))
+		return;
 
 	char sWeapon[11];
 	GetEventString(event, "weapon", sWeapon, 11);
@@ -165,8 +161,6 @@ Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		iCountKill[attacker] = 0;
 		
 	iCountKill[client] = 0;
-	
-	return Plugin_Continue;
 }
 
 void Event_RoundReset(Event event, const char[] name, bool dontBroadcast)
@@ -181,13 +175,10 @@ void OnOverlay(int client, char[] sOverlay)
 
 	if(hTimerOverlay[client])
 		delete hTimerOverlay[client];
-	hTimerOverlay[client] = CreateTimer(cvTimeOverlay.FloatValue, OverlayEndTimer, GetClientUserId(client));
+	hTimerOverlay[client] = CreateTimer(cvTimeOverlay.FloatValue, Timer_OverlayEndTimer, GetClientUserId(client));
 }
 
 bool IsValidClient(int client)
 {
-	if(0 < client <= MaxClients)
-		return true;
-	else
-		return false;
+	return 0 < client <= MaxClients && IsClientInGame(client);
 }
